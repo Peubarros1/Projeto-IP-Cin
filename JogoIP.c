@@ -94,7 +94,7 @@ void aplicarGravidade(Character *Character, int *countJump) {
             (*countJump) = 0;
     }
 }
-
+//
 int main(void) {
 
     InitWindow(WIDTHSCREEN, HEIGHTSCREEN, "Bloody War");
