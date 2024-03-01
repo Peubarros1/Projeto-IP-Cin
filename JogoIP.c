@@ -6,6 +6,7 @@
 #define WIDTHSCREEN 1280
 #define HEIGHTSCREEN 720
 #define FATOR_REDUCAO 0.5
+#define COOLDOWN_ATTACK 0.5
 
 //Definição dos estados de transição de tela do jogo
 typedef enum EstadosDeTela {Carregamento, Titulo, Gameplay, Personagem, Controles, Opcoes, Final}EstadosDeTela;
@@ -123,6 +124,9 @@ int main(void) {
     //Variaveis para controlar os pulos dos personagens
     int countJump = 0;
     int countJump2 = 0;
+     //variáveis de tempo de cooldown para cada personagem
+    double cooldownPlayer = 0;
+    double cooldownEnemy = 0;
 
     Character player = {{200, 300, 350, 350},{50 * countSprite + 24,88,50, 100},"Bloodthirsty",100, 3, 150, 0,20,0,false};
     Character enemy = {{900,300,350,350},{100 * countSprite2,130,100,136},"Warrior",100,2,150,0,20,0,false};
@@ -403,6 +407,33 @@ int main(void) {
             enemy.posRect.x -= 5;
         }
     }
+     // Verificar se o jogador pode atacar e aplicar o cooldown
+            if (IsKeyPressed(KEY_C) && player.isAttacking == false && GetTime() > cooldownPlayer) {
+                player.isAttacking = true;
+                // Definir o tempo de cooldown para o momento atual mais o tempo de espera
+                cooldownPlayer = GetTime() + COOLDOWN_ATTACK;
+            }
+
+            // Verificar se o inimigo pode atacar e aplicar o cooldown
+            if (IsKeyPressed(KEY_M) && enemy.isAttacking == false && GetTime() > cooldownEnemy) {
+                enemy.isAttacking = true;
+                // Definir o tempo de cooldown para o momento atual mais o tempo de espera
+                cooldownEnemy = GetTime() + COOLDOWN_ATTACK;
+            }
+
+            // Verificar o tempo de cooldown do jogador
+            if (player.isAttacking && GetTime() >= cooldownPlayer) {
+                // Reiniciar o estado de ataque do jogador e redefinir o tempo de cooldown
+                player.isAttacking = false;
+                cooldownPlayer = 0;
+            }
+
+            // Verificar o tempo de cooldown do inimigo
+            if (enemy.isAttacking && GetTime() >= cooldownEnemy) {
+                // Reiniciar o estado de ataque do inimigo e redefinir o tempo de cooldown
+                enemy.isAttacking = false;
+                cooldownEnemy = 0;
+            }
 
                 aplicarGravidade(&enemy, &countJump2);
                 //Fim do controle do personagem 2//*/
