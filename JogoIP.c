@@ -94,7 +94,7 @@ void aplicarGravidade(Character *Character, int *countJump) {
             (*countJump) = 0;
     }
 }
-//
+
 int main(void) {
 
     InitWindow(WIDTHSCREEN, HEIGHTSCREEN, "Bloody War");
@@ -281,6 +281,7 @@ int main(void) {
                 player.SourceRect = (Rectangle){325, 180, 70, 90};
                 if (CheckCollisionRecs(enemy.posRect, player.posRect)) {
                     enemy.health -= 1;
+                    
                 }
 
                 }
@@ -316,7 +317,23 @@ int main(void) {
                         projetcilePlayer.active = false;
                         projetcilePlayer = (Projectile){player,{player.posRect.x + 150,player.posRect.y + 30,100,100 },{200,120,490,420} ,(Vector2){15, 0}, false};
                     }
-                }
+                    // Empurra o jogador para trás
+                    if (enemy.posRect.x < player.posRect.x) {
+                    player.posRect.x += 3; 
+                     } else {
+                    player.posRect.x -= 3;  
+                    }
+                    if (enemy.posRect.x < player.posRect.x) {
+                    enemy.posRect.x -= 5; 
+                    } else {
+                    enemy.posRect.x += 5; 
+                    }
+                
+                    
+                    }
+                 
+    
+
 
                 if (IsKeyPressed(KEY_W) && !player.isJumping && countJump < 2) {
                     countJump += 1;
@@ -400,11 +417,11 @@ int main(void) {
 
         // Ajustar as posições dos personagens para evitar sobreposição
         if (player.posRect.x < enemy.posRect.x) {
-            player.posRect.x -= 5;
-            enemy.posRect.x += 5;
+            player.posRect.x -= 3;
+            enemy.posRect.x += 3;
         } else {
-            player.posRect.x += 5;
-            enemy.posRect.x -= 5;
+            player.posRect.x += 3;
+            enemy.posRect.x -= 3;
         }
     }
      // Verificar se o jogador pode atacar e aplicar o cooldown
@@ -513,6 +530,7 @@ int main(void) {
                     DrawText(itemsMenu[i].text, (int)(itemsMenu[i].rect.x + itemsMenu[i].rect.width / 2 - MeasureText(itemsMenu[i].text, 20) / 2), (int)(itemsMenu[i].rect.y + itemsMenu[i].rect.height / 2 - 10), 20, itemsMenu[i].textColor);
                 }
             } break;
+        
             case Gameplay:
             {
                 
@@ -580,6 +598,7 @@ int main(void) {
             }break;
             default: break;
         }
+
         EndDrawing();
     }
     CloseWindow();
