@@ -1,34 +1,37 @@
-//Importação das bibliotecas para o projeto
 #include "raylib.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdbool.h>
 
-//Resoulução da tela de jogo(HD)
 #define WIDTHSCREEN 1280
 #define HEIGHTSCREEN 720
+#define FATOR_REDUCAO 0.5
 
-// Definição dos estados de transição de tela do jogo
-typedef enum EstadosDeTela {Carregamento,Titulo,Gameplay,Personagem,Controles,Opcoes,Final}EstadosDeTela;
+//Definição dos estados de transição de tela do jogo
+typedef enum EstadosDeTela {Carregamento, Titulo, Gameplay, Personagem, Controles, Opcoes, Final}EstadosDeTela;
 
-// Estrutura para os personagens com suas respectivas caracteristicas
+//Estrutura para os personagens com suas respectivas caracteristicas
 typedef struct {
 
+    Rectangle posRect;
+    Rectangle SourceRect;
     char name[20];
-    Rectangle rect;
     int health;
     int attackDamage;
     int jumpForce;
     int velocity;
     int jumpSpeed;
     int isJumping;
+    bool isAttacking;
 
 } Character;
 
-// Estrutura para os projéteis com suas caracteristicas
+//Estrutura para os projéteis com suas caracteristicas
 typedef struct
 {
-    Vector2 position;
+    Character player;
+    Rectangle Source;
+    Rectangle Position;
     Vector2 speed;
     bool active;
 
@@ -47,43 +50,44 @@ typedef struct {
 // Função para atualizar a posição do personagem e mantê-lo dentro dos limites da tela
 void atualizarPersonagem(Character *character, int sentido, int screenWidth){
     //Atualiza a posição do personagem
-    character->rect.x += sentido * 5;
+    character->posRect.x += sentido * 5;
 
     //Controle de movimentação do personagem dentro dos limites da tela
-    if (character->rect.x < 0)
-        character->rect.x = 0;
-    if (character->rect.x + character->rect.width > WIDTHSCREEN)
-        character->rect.x = screenWidth - character->rect.width;
+    if (character->posRect.x < 0)
+        character->posRect.x = 0;
+    if (character->posRect.x + character->posRect.width > WIDTHSCREEN)
+        character->posRect.x = screenWidth - character->posRect.width;
 }
 
 // Função para desenhar um personagem
-void desenharCharacter(Character character, Color color) {
-    DrawRectangleRec(character.rect, color);
+void desenharCharacter(Character *character, Texture2D texture) {
+    DrawTexturePro(texture, character->SourceRect, character->posRect,(Vector2){0, 0}, 0, WHITE);
 }
-
 // Função para disparar um projétil
-void dispararProjetil(Character character, Projectile *projetcile){
+void dispararProjetil(Projectile *projetcile){
 
     //Verifica se o projetil não esta ativo antes de dispara-lo
     if (!projetcile->active) {
-        projetcile->position = (Vector2){character.rect.x, character.rect.y + 150};
+        //projetcile->Source.x = projetcile->Source.x
+        //projetcile->Source.y = projetcile->Source.y;
         projetcile->active = true;
     }
 }
-void aplicarGravidade(Character *player, int *countJump) {
+
+void aplicarGravidade(Character *Character, int *countJump) {
     // Se o jogador estiver pulando atualize suas posições
-    if (player->isJumping) {
-        player->rect.y -= player->jumpSpeed;
-        player->jumpForce -= player->jumpSpeed/1.7;
+    if (Character->isJumping) {
+        Character->posRect.y -= Character->jumpSpeed;
+        Character->jumpForce -= Character->jumpSpeed/1.7;
     
         // Verifica se o pulo terminou
-        if (player->jumpForce <= 0) {
-            player->isJumping = false;
+        if (Character->jumpForce <= 0) {
+            Character->isJumping = false;
         }
     } else {
         // Aplica a gravidade ao jogador
-        if((player->rect.y + player->rect.height) < 600) {
-            player->rect.y += 14; // Adicione sua própria lógica de gravidade aqui, se necessário
+        if((Character->posRect.y + Character->posRect.height) < 650) {
+            Character->posRect.y += 14;
         }
         else
             (*countJump) = 0;
@@ -92,37 +96,50 @@ void aplicarGravidade(Character *player, int *countJump) {
 
 int main(void) {
 
-    // Inicialização da janela
     InitWindow(WIDTHSCREEN, HEIGHTSCREEN, "Bloody War");
-    
-    int playerCooldown = 0;
-    int enemyCooldown = 0;
-    int cooldownDuration = 60;
 
-    // Variáveis para controlar o cronometro
+    int controlHeight = 0;
+
+    int TimeProjectile = 0;
+    int TimeProjectile2 = 0;
+
+    //Tempo de ataque
+    double timeAttack = 0;
+    double timeAttack2 = 0;
+
+    //Contador para os sprites dos personagens
+    int countSprite = 0;
+    int countSprite2 = 0;
+
+    //Variáveis para controlar o cronometro
     int counterFps = 0;
     int count = 120;
     int fpsAtual;
-
-    //Variaveis para controlar os pulos
-    int countJump = 0;
-    int countJump2 = 0;
 
     // Definição da quantidade de items por menu
     int numItemsMenu = 3;
     int numItemsOptions = 2;
 
-    //Criação dos personagens
-    Character player = {"Bloodthirsty", {200, 350, 100, 250}, 100, 3, 150, 0,20,0};
-    Character enemy = {"Warrior", {1000, 350, 100, 250}, 100, 3, 20, 0,20,0};
+    //Variaveis para controlar os pulos dos personagens
+    int countJump = 0;
+    int countJump2 = 0;
 
-    //Definiçao do projetil do player e do enemy
-    Projectile projetcilePlayer = {(Vector2){player.rect.x, player.rect.y + 150}, (Vector2){10, 0}, false};
-    Projectile projetcileEnemy = {(Vector2){enemy.rect.x, enemy.rect.y + 150}, (Vector2){10, 0}, false};
+    Character player = {{200, 300, 350, 350},{50 * countSprite + 24,88,50, 100},"Bloodthirsty",100, 3, 150, 0,20,0,false};
+    Character enemy = {{900,300,350,350},{100 * countSprite2,130,100,136},"Warrior",100,2,150,0,20,0,false};
+
+    Projectile projetcilePlayer = {player,{player.posRect.x + 150,player.posRect.y + 30,100,100 },{200,120,490,420} ,(Vector2){15, 0}, false};
+    Projectile projetcileEnemy = {enemy,{enemy.posRect.x,enemy.posRect.y,100,100 },{0,0,220,220},{10, 0}, false};
+
+    Rectangle DefaultSourcePlayer1 = player.SourceRect;
+    Rectangle DefaultSourcePlayer2 = enemy.SourceRect;
+    Rectangle DefaultPositionPlayer2 = enemy.posRect;
+
+    Rectangle posRect2;
 
     //Posições dos textos do menu
     Vector2 textPosition1 = {785.f, 130.f};
     Vector2 textPosition2 = {100, HEIGHTSCREEN / 3};
+    Vector2 textPosition3 = {400,610};
 
     // Instalação da fonte
     Font font = LoadFont("leadcoat.ttf");
@@ -141,13 +158,30 @@ int main(void) {
     Texture2D texture2 = LoadTextureFromImage(myImage2);
     UnloadImage(myImage2);
 
-    Image myImage3 = LoadImage("arena.png");
+    Image myImage3 = LoadImage("street-fighter-japanese-signs-1280x720.png");
     Texture2D texture3 = LoadTextureFromImage(myImage3);
     UnloadImage(myImage3);
 
     Image myImage4 = LoadImage("escudo.png");
     Texture2D texture4 = LoadTextureFromImage(myImage4);
     UnloadImage(myImage4);
+
+    Image myImage5 = LoadImage("hero3.png");
+    Texture2D texture5 = LoadTextureFromImage(myImage5);
+    UnloadImage(myImage5);
+
+    Image myImage6 = LoadImage("hero1.png");
+    Texture2D texture6 = LoadTextureFromImage(myImage6);
+    UnloadImage(myImage6);
+
+    Image myImage7 = LoadImage("ballblue.png");
+    Texture2D texture7 = LoadTextureFromImage(myImage7);
+    UnloadImage(myImage7);
+
+    Image myImage8 = LoadImage("ballred.png");
+    Texture2D texture8 = LoadTextureFromImage(myImage8);
+    UnloadImage(myImage8);
+    
     
     // Estado inicial da tela
     EstadosDeTela estadoTela = Carregamento;
@@ -165,14 +199,15 @@ int main(void) {
         {{560, 360, 200, 40}, "Back", WHITE, RED}
     };
 
-    //Loop enquanto a janela não estiver pronta
     while (!IsWindowReady()){}
 
     //Definindo 60 FPS
     SetTargetFPS(60);
 
     while (!WindowShouldClose()) {
-      
+
+        posRect2 = (Rectangle){player.posRect.x,player.posRect.y,100,100};
+                
         switch(estadoTela) {
             case Carregamento:
             {
@@ -205,6 +240,10 @@ int main(void) {
             } break;
             case Gameplay:
             {
+                //Se apertar P fecha o jogo
+                if (IsKeyPressed(KEY_P))
+                    estadoTela = Final;
+
                 //Controle do cronometro
                 counterFps++;
                 if (counterFps == 120 || counterFps == fpsAtual + 60) {
@@ -214,41 +253,64 @@ int main(void) {
                 if (counterFps == 7200)
                     estadoTela = Final;
 
-                //Se apertar P fecha o jogo
-                if (IsKeyPressed(KEY_P))
-                    estadoTela = Final;
-
-                ////Controle do personagem 1////
-                //Movimentação do personagem principal
-
-                if (IsKeyDown(KEY_D))
+                
+                //Movimentação do personagem de numero 1
+                if (IsKeyDown(KEY_D)){
                     atualizarPersonagem(&player, 1, WIDTHSCREEN);
-                if (IsKeyDown(KEY_A))
+                    countSprite = ((int)GetTime())%3;
+                    player.SourceRect = (Rectangle){50 * countSprite + 24,88, 50, 100};
+                }else
+                    player.SourceRect = (Rectangle){24,88, 50, 110};
+                
+                if (IsKeyDown(KEY_A)){
                     atualizarPersonagem(&player, -1, WIDTHSCREEN);
-
-                //Ataque do personagem
-                if (IsKeyPressed(KEY_C)) {
-                    if (CheckCollisionRecs(player.rect, enemy.rect)) {
-                        enemy.health -= player.attackDamage;
-                    } 
+                    countSprite = ((int)GetTime())%3;
+                    player.SourceRect = (Rectangle){50 * countSprite + 24,88, 50, 100};
                 }
 
+                if (IsKeyPressed(KEY_C) && player.isAttacking == false) {
+                player.isAttacking = true;
+                timeAttack = GetTime() + 0.2; 
+                }
+                if (player.isAttacking && GetTime() < timeAttack){
+                // Desenhe a animação de ataque
+                player.SourceRect = (Rectangle){325, 180, 70, 90};
+                if (CheckCollisionRecs(enemy.posRect, player.posRect)) {
+                    enemy.health -= 1;
+                }
+
+                }
+                else if(player.isAttacking && GetTime() >= timeAttack) {
+                // Se não estiver atacando ou o tempo de ataque acabar, volte para a animação padrão
+                player.SourceRect = DefaultSourcePlayer1;
+                player.isAttacking = false;
+                }
+                
                 //Atualização da posição do projetil
                 if (IsKeyPressed(KEY_X)) {
-                    dispararProjetil(player, &projetcilePlayer);
+                    dispararProjetil(&projetcilePlayer);
+                    TimeProjectile = GetTime() + 2.0;
                 }
 
                 //Se o projetil estiver ativo, tera uma taxa de atualização da posição X
                 if (projetcilePlayer.active) {
-                    projetcilePlayer.position.x += projetcilePlayer.speed.x;
+                    projetcilePlayer.Source.x += projetcilePlayer.speed.x;
+
+                    if(GetTime() < TimeProjectile)
+                        player.SourceRect = (Rectangle){390,570,82,80};
+                    else    
+                        player.SourceRect = DefaultSourcePlayer1;
 
                     //Se o projeto ultrapassar os limites da tela, ele deixa de ser ativo
-                    if (projetcilePlayer.position.x > WIDTHSCREEN){
+                    if (projetcilePlayer.Source.x > WIDTHSCREEN){
                         projetcilePlayer.active = false;
+                        projetcilePlayer = (Projectile){player,{player.posRect.x + 150,player.posRect.y + 30,100,100 },{200,120,490,420} ,(Vector2){15, 0}, false};
                     }
-                    if(CheckCollisionCircleRec(projetcilePlayer.position,25,enemy.rect)){
+                    
+                    if(CheckCollisionRecs(projetcilePlayer.Source,enemy.posRect)){
                         enemy.health -= player.attackDamage;
                         projetcilePlayer.active = false;
+                        projetcilePlayer = (Projectile){player,{player.posRect.x + 150,player.posRect.y + 30,100,100 },{200,120,490,420} ,(Vector2){15, 0}, false};
                     }
                 }
 
@@ -257,71 +319,93 @@ int main(void) {
                     player.isJumping = true;
                     player.jumpForce = 150;
                 }
-
                 aplicarGravidade(&player, &countJump);
-                //Fim do controle do personagem 1//
 
-                ////Controle do personagem 2////
-                //Movimentação do segundo player
-                if (IsKeyDown(KEY_RIGHT))
+
+                //Controle do segundo personagem
+                if (IsKeyDown(KEY_RIGHT)){
                     atualizarPersonagem(&enemy, 1, WIDTHSCREEN);
-                if (IsKeyDown(KEY_LEFT))
+                    countSprite2 = ((int)GetTime())%3;
+                    enemy.SourceRect = (Rectangle){100 * countSprite2,130,96,136};
+                }else
+                    enemy.SourceRect = (Rectangle){0,130,100,136};
+                
+                if (IsKeyDown(KEY_LEFT)){
                     atualizarPersonagem(&enemy, -1, WIDTHSCREEN);
-
-                //Ataque do personagem
-                if (IsKeyPressed(KEY_M)) {
-                    if (CheckCollisionRecs(enemy.rect, player.rect)) {
-                        player.health -= enemy.attackDamage;
-                    } 
+                    countSprite2 = ((int)GetTime())%3;
+                    enemy.SourceRect = (Rectangle){100 * countSprite2,130,96,136};
                 }
 
+                if (IsKeyPressed(KEY_M) && enemy.isAttacking == false) {
+                enemy.isAttacking = true;
+                timeAttack2 = GetTime() + 0.5; 
+                }
+                if (enemy.isAttacking && GetTime() < timeAttack2) {
+                // Desenhe a animação de ataque
+                enemy.SourceRect = (Rectangle){925, 670, 95, 150};
+                if(controlHeight < 1){
+                    enemy.posRect.y = enemy.posRect.y - 179;
+                    controlHeight++;
+                }
+                if (CheckCollisionRecs(enemy.posRect, player.posRect)) {
+                    player.health -= 1;
+                }
+                }else if(enemy.isAttacking && GetTime() >= timeAttack2) {
+                // Se não estiver atacando ou o tempo de ataque acabar, volte para a animação padrão
+                enemy.SourceRect = DefaultSourcePlayer2;
+                enemy.posRect.y = DefaultPositionPlayer2.y;
+                controlHeight = 0;
+                enemy.isAttacking = false;
+                }
+                
                 //Atualização da posição do projetil
                 if (IsKeyPressed(KEY_N)) {
-                    dispararProjetil(enemy, &projetcileEnemy);
+                    dispararProjetil(&projetcileEnemy);
+                    TimeProjectile2 = GetTime() + 2.0;
                 }
-
                 //Se o projetil estiver ativo, tera uma taxa de atualização da posição X
-                if (projetcileEnemy.active) {
-                    projetcileEnemy.position.x -= projetcileEnemy.speed.x;
+                if (projetcileEnemy.active){
+                    projetcileEnemy.Source.x -= projetcileEnemy.speed.x;
+
+                    if(GetTime() < TimeProjectile2)
+                        enemy.SourceRect = (Rectangle){820,286,140,110};
+                    else    
+                        enemy.SourceRect = DefaultSourcePlayer2;
 
                     //Se o projeto ultrapassar os limites da tela, ele deixa de ser ativo
-                    if (projetcileEnemy.position.x < 0){
+                    if (projetcileEnemy.Source.x < 0){
                         projetcileEnemy.active = false;
-                    }
-                    if(CheckCollisionCircleRec(projetcileEnemy.position,25,player.rect)){
+                        projetcileEnemy = (Projectile){enemy,{enemy.posRect.x,enemy.posRect.y,100,100 },{0,0,220,220},{10, 0}, false};                   }
+                    
+                    if(CheckCollisionRecs(projetcileEnemy.Source,posRect2)){
                         player.health -= enemy.attackDamage;
                         projetcileEnemy.active = false;
-                    }
+                        projetcileEnemy = (Projectile){enemy,{enemy.posRect.x,enemy.posRect.y,100,100 },{0,0,220,220},{10, 0}, false};                    }
                 }
+
 
                 if (IsKeyPressed(KEY_UP) && !enemy.isJumping && countJump2 < 2) {
                     countJump2 += 1;
                     enemy.isJumping = true;
                     enemy.jumpForce = 150;
                 }
-                 if (CheckCollisionRecs(player.rect, enemy.rect)) {
-            // Verifique se o cooldown não está ativo
-            if (playerCooldown <= 0 && enemyCooldown <= 0) {
-                // Aplica o efeito da colisão, como redução de saúde, por exemplo
-                player.health -= enemy.attackDamage;
-                enemy.health -= player.attackDamage;
+                 if (CheckCollisionRecs(player.posRect, enemy.posRect)) {
+        
+        player.velocity *= FATOR_REDUCAO;
+        enemy.velocity *= FATOR_REDUCAO;
 
-                // Ativa o cooldown para ambos os personagens
-                playerCooldown = cooldownDuration;
-                enemyCooldown = cooldownDuration;
-            }
+        // Ajustar as posições dos personagens para evitar sobreposição
+        if (player.posRect.x < enemy.posRect.x) {
+            player.posRect.x -= 5;
+            enemy.posRect.x += 5;
+        } else {
+            player.posRect.x += 5;
+            enemy.posRect.x -= 5;
         }
-
-        if (playerCooldown > 0) {
-            playerCooldown--;
-        }
-        if (enemyCooldown > 0) {
-            enemyCooldown--;
-        }
-
+    }
 
                 aplicarGravidade(&enemy, &countJump2);
-                //Fim do controle do personagem 2//
+                //Fim do controle do personagem 2//*/
 
             } break;  
             case Opcoes:
@@ -400,15 +484,17 @@ int main(void) {
             } break;
             case Gameplay:
             {
+                
                 //Textura de fundo
                 DrawTexture(texture3, 0, 0, WHITE);
-
-                //Desenhando os personagens do game
-                desenharCharacter(player, BLUE);
-                desenharCharacter(enemy, GREEN);
-
+                desenharCharacter(&player,texture5);
+                desenharCharacter(&enemy,texture6);
+                
                 //Desenhando a base(piso) dos personagems
-                DrawRectangle(0, 600, WIDTHSCREEN, 120, BROWN);
+                DrawRectangle(0, 600, WIDTHSCREEN, 120, DARKBROWN);
+
+                //Desenhando o titulo
+                DrawTextEx(font, "Bloody War", textPosition3, 100, 2, RED);
 
                 //Barra de vida dos personagens
                 DrawRectangle(10, 10, player.health * 2, 20, WHITE);
@@ -425,10 +511,10 @@ int main(void) {
 
                 //Desenhando o projetil caso esteja ativo
                 if (projetcilePlayer.active == true) {
-                    DrawCircleV(projetcilePlayer.position, 25, RED);
+                   DrawTexturePro(texture7,projetcilePlayer.Position,projetcilePlayer.Source,(Vector2){0, 0}, 0, WHITE);
                 }
                 if (projetcileEnemy.active == true) {
-                    DrawCircleV(projetcileEnemy.position, 25, RED);
+                   DrawTexturePro(texture8,projetcileEnemy.Position,projetcileEnemy.Source,(Vector2){0, 0}, 0, WHITE);
                 }
 
             } break;
@@ -467,4 +553,4 @@ int main(void) {
     }
     CloseWindow();
     return 0;
-}
+} 
