@@ -7,9 +7,10 @@
 #define HEIGHTSCREEN 720
 #define FATOR_REDUCAO 0.5
 #define COOLDOWN_ATTACK 0.5
+#define NUM_PERSONAGENS 2
 
 //Definição dos estados de transição de tela do jogo
-typedef enum EstadosDeTela {Carregamento, Titulo, Gameplay, Personagem, Controles, Opcoes, Final}EstadosDeTela;
+typedef enum EstadosDeTela {Carregamento, Titulo,escolhapersonagem, Gameplay, Personagem, Controles, Opcoes, Final}EstadosDeTela;
 
 //Estrutura para os personagens com suas respectivas caracteristicas
 typedef struct {
@@ -47,6 +48,12 @@ typedef struct {
     Color rectColor;
   
 } MenuItem;
+typedef struct {
+    Rectangle rect; 
+    const char* name; 
+    Texture2D texture; 
+    bool selected; 
+} escolhaCharacter;
 
 // Função para atualizar a posição do personagem e mantê-lo dentro dos limites da tela
 void atualizarPersonagem(Character *character, int sentido, int screenWidth){
@@ -96,6 +103,7 @@ void aplicarGravidade(Character *Character, int *countJump) {
 }
 
 int main(void) {
+    
 
     InitWindow(WIDTHSCREEN, HEIGHTSCREEN, "Bloody War");
 
@@ -185,6 +193,11 @@ int main(void) {
     Image myImage8 = LoadImage("ballred.png");
     Texture2D texture8 = LoadTextureFromImage(myImage8);
     UnloadImage(myImage8);
+
+    escolhaCharacter personagens[NUM_PERSONAGENS] = {
+    {{200, 300, 150, 150}, "Bloodthirsty", texture5, false},
+    {{600, 300, 150, 150}, "Warrior", texture6, false}
+};
     
     
     // Estado inicial da tela
@@ -235,13 +248,47 @@ int main(void) {
 
                         //Verifica se alguma opção da janela de titulo foi selecionada
                         if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
-                            if (i == 0) estadoTela = Gameplay;
+                            if (i == 0) estadoTela = escolhapersonagem ;
                             else if (i == 1) estadoTela = Opcoes;
                             else if(i == 2) estadoTela = Controles;
                         }
                     }
                 }
             } break;
+            case escolhapersonagem:
+            {
+            ClearBackground(BLACK);
+
+    
+         DrawTextEx(font, "Escolha seu personagem", (Vector2){350, 100}, 40, 2, WHITE);
+
+        // preciso desenhar os botões dos personagens
+        for (int i = 0; i < NUM_PERSONAGENS; i++) {
+        //  botão do personagem
+        DrawRectangleRec(personagens[i].rect, MAROON);
+
+        //nome do personagem
+        DrawText(personagens[i].name, personagens[i].rect.x + 10, personagens[i].rect.y + personagens[i].rect.height + 10, 20, WHITE);
+
+        //  textura do personagem
+        DrawTexture(personagens[i].texture, personagens[i].rect.x, personagens[i].rect.y, WHITE);
+
+        // vejo se  botão ta no personagem
+        if (CheckCollisionPointRec(GetMousePosition(), personagens[i].rect)) {
+            // Se o botão for clicado, selecione o personagem
+            if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+                // Deseleciona todos os personagens antes de selecionar o atual
+                for (int j = 0; j < NUM_PERSONAGENS; j++) {
+                    personagens[j].selected = false;
+                }
+                personagens[i].selected = true;
+
+                
+                estadoTela = Gameplay;
+            }
+        }
+    }
+} break;
             case Gameplay:
             {
                 //Se apertar P fecha o jogo
@@ -323,11 +370,7 @@ int main(void) {
                      } else {
                     player.posRect.x -= 3;  
                     }
-                    if (enemy.posRect.x < player.posRect.x) {
-                    enemy.posRect.x -= 5; 
-                    } else {
-                    enemy.posRect.x += 5; 
-                    }
+                    
                 
                     
                     }
