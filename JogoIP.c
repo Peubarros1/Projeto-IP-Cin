@@ -1,3 +1,4 @@
+
 #include "raylib.h"
 #include <stdlib.h>
 #include <stdio.h>
@@ -5,7 +6,7 @@
 
 #define WIDTHSCREEN 1280
 #define HEIGHTSCREEN 720
-#define FATOR_REDUCAO 0.5
+#define FATOR_REDUCAO 0.15
 #define COOLDOWN_ATTACK 0.5
 #define NUM_PERSONAGENS 2
 
@@ -283,7 +284,7 @@ int main(void) {
                 }
                 personagens[i].selected = true;
 
-                
+                // Transite para o estado de gameplay
                 estadoTela = Gameplay;
             }
         }
@@ -460,11 +461,11 @@ int main(void) {
 
         // Ajustar as posições dos personagens para evitar sobreposição
         if (player.posRect.x < enemy.posRect.x) {
-            player.posRect.x -= 3;
-            enemy.posRect.x += 3;
+            player.posRect.x -= 1;
+            enemy.posRect.x += 1;
         } else {
-            player.posRect.x += 3;
-            enemy.posRect.x -= 3;
+            player.posRect.x += 1;
+            enemy.posRect.x -= 1;
         }
     }
      // Verificar se o jogador pode atacar e aplicar o cooldown
