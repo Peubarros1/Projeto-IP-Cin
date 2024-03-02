@@ -1,4 +1,3 @@
-
 #include "raylib.h"
 #include <stdlib.h>
 #include <stdio.h>
@@ -467,6 +466,11 @@ int main(void) {
             player.posRect.x += 1;
             enemy.posRect.x -= 1;
         }
+        if (player.health <= 0 || enemy.health <= 0) {
+            estadoTela = Final;
+                }
+         
+
     }
      // Verificar se o jogador pode atacar e aplicar o cooldown
             if (IsKeyPressed(KEY_C) && player.isAttacking == false && GetTime() > cooldownPlayer) {
@@ -609,6 +613,9 @@ int main(void) {
                 if (projetcileEnemy.active == true) {
                    DrawTexturePro(texture8,projetcileEnemy.Position,projetcileEnemy.Source,(Vector2){0, 0}, 0, WHITE);
                 }
+                if (player.health <= 0 || enemy.health <= 0) {
+            estadoTela = Final;
+                }
 
             } break;
             case Opcoes:
@@ -636,9 +643,13 @@ int main(void) {
             }break;
             case Final:
             {
-                //Tela final de jogo;
-                DrawText("Ending Screen is Here", 100, HEIGHTSCREEN / 2, 60, WHITE);
-
+                ClearBackground(BLACK);
+        DrawText("Game Over", WIDTHSCREEN / 2 - MeasureText("Game Over", 40) / 2, HEIGHTSCREEN / 2 - 20, 40, WHITE);
+        DrawText("aperte ENTER para retornar a tela inicial", WIDTHSCREEN / 2 - MeasureText("aperte ENTER para retornar a tela inicial", 20) / 2, HEIGHTSCREEN / 2 + 20, 20, WHITE);
+        ClearBackground(BLACK);
+        if (IsKeyPressed(KEY_ENTER))
+        estadoTela = Titulo;
+    
             }break;
             default: break;
         }
